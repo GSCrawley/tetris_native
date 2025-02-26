@@ -1,15 +1,32 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { COLORS } from '../utils';
 import { GAME_DIMENSIONS } from '../utils/constants';
+import { useBlockAnimation } from '../hooks/useBlockAnimation';
 
-const GridSquare = ({ color = 0 }) => {
+const GridSquare = ({ color = 0, isActive = false, isClearing = false }) => {
+  const { animatedStyle, triggerLandingAnimation, triggerClearAnimation } = useBlockAnimation(isActive, color);
+
+  React.useEffect(() => {
+    if (isClearing) {
+      triggerClearAnimation();
+    }
+  }, [isClearing]);
+
+  React.useEffect(() => {
+    if (isActive && color > 0) {
+      triggerLandingAnimation();
+    }
+  }, [isActive, color]);
+
   return (
-    <View 
+    <Animated.View 
       style={[
         styles.square,
         { backgroundColor: COLORS[color] },
-        color > 0 && styles.block
+        color > 0 && styles.block,
+        animatedStyle
       ]}
     />
   );

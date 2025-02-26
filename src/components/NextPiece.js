@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useSelector } from 'react-redux';
+import Animated, {
+  useAnimatedStyle,
+  withSpring,
+  useSharedValue,
+} from 'react-native-reanimated';
 import GridSquare from './GridSquare';
 import { shapes } from '../utils';
 import { GAME_DIMENSIONS } from '../utils/constants';
@@ -8,11 +13,36 @@ import { GAME_DIMENSIONS } from '../utils/constants';
 const NextPiece = () => {
   const nextShape = useSelector((state) => state.game.nextShape);
   const block = shapes[nextShape][0];
+  const rotation = useSharedValue(0);
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    // Animate when next piece changes
+    rotation.value = withSpring(rotation.value + 360, {
+      damping: 10,
+      stiffness: 100,
+    });
+    scale.value = withSpring(0.8, {
+      damping: 10,
+      stiffness: 100,
+    });
+    scale.value = withSpring(1, {
+      damping: 10,
+      stiffness: 100,
+    });
+  }, [nextShape]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { rotate: `${rotation.value}deg` },
+      { scale: scale.value },
+    ],
+  }));
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Next</Text>
-      <View style={styles.preview}>
+      <Animated.View style={[styles.preview, animatedStyle]}>
         {block.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.row}>
             {row.map((cell, colIndex) => (
@@ -23,7 +53,7 @@ const NextPiece = () => {
             ))}
           </View>
         ))}
-      </View>
+      </Animated.View>
     </View>
   );
 };

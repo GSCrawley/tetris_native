@@ -1,16 +1,31 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useSelector } from 'react-redux';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import Animated, { 
+  useAnimatedStyle, 
+  withSequence, 
+  withTiming,
+  useSharedValue
+} from 'react-native-reanimated';
 import GridSquare from './GridSquare';
 import { shapes } from '../utils';
 import { useTouchControls } from '../hooks/useTouchControls';
 import { useGameControls } from '../hooks/useGameControls';
 
 const GameBoard = () => {
-  const { grid, shape, rotation, x, y } = useSelector((state) => state.game);
+  const { 
+    grid, 
+    shape, 
+    rotation, 
+    x, 
+    y, 
+    completedRows 
+  } = useSelector((state) => state.game);
+  
   const handleGameAction = useGameControls();
   const handleGesture = useTouchControls(handleGameAction);
+  const boardScale = useSharedValue(1);
 
   const gesture = Gesture.Pan()
     .onUpdate((event) => {
@@ -19,6 +34,20 @@ const GameBoard = () => {
     .onEnd(() => {
       // Reset any gesture state if needed
     });
+
+  // Animate board on row clear
+  useEffect(() => {
+    if (completedRows.length > 0) {
+      boardScale.value = withSequence(
+        withTiming(1.02, { duration: 100 }),
+        withTiming(1, { duration: 100 })
+      );
+    }
+  }, [completedRows]);
+
+  const animatedBoardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: boardScale.value }]
+  }));
 
   // Get the current shape's grid
   const block = shapes[shape][rotation];
@@ -41,18 +70,26 @@ const GameBoard = () => {
 
   return (
     <GestureDetector gesture={gesture}>
-      <View style={styles.container}>
+      <Animated.View style={[styles.container, animatedBoardStyle]}>
         {blockGrid.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.row}>
             {row.map((cell, colIndex) => (
               <GridSquare
                 key={`${rowIndex}-${colIndex}`}
                 color={cell}
+                isActive={
+                  rowIndex >= y &&
+                  rowIndex < y + block.length &&
+                  colIndex >= x &&
+                  colIndex < x + block[0].length &&
+                  block[rowIndex - y]?.[colIndex - x]
+                }
+                isClearing={completedRows.includes(rowIndex)}
               />
             ))}
           </View>
         ))}
-      </View>
+      </Animated.View>
     </GestureDetector>
   );
 };
